@@ -63,15 +63,14 @@ builder.Services.AddScoped<DotNetHighPerformanceApi.Application.Caching.ICacheSe
 builder.Services.AddScoped<DotNetHighPerformanceApi.Application.Caching.IETagService, DotNetHighPerformanceApi.Infrastructure.Caching.ETagService>();
 
 // 9. Health Checks (Postgres + Redis)
+var postgresConnStr = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' não encontrada");
+var redisConnStr = builder.Configuration.GetConnectionString("RedisConnection") ?? "localhost:6379";
+
 builder.Services.AddHealthChecks()
-    .AddNpgSql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        name: "postgres",
-        tags: new[] { "db" })
-    .AddRedis(
-        builder.Configuration.GetConnectionString("RedisConnection") ?? "localhost:6379",
-        name: "redis",
-        tags: new[] { "cache" });
+    .AddNpgSql(postgresConnStr, name: "postgres", tags: new[] { "db" })
+    .AddRedis(redisConnStr, name: "redis", tags: new[] { "cache" });
+
 
 // 7. Controllers
 builder.Services.AddControllers();
@@ -114,12 +113,9 @@ if (app.Environment.IsDevelopment())
     }
 }
 
-app.UseResponseCompression();
-
 app.UseHttpsRedirection();
-
-app.UseResponseCaching(); 
-
+app.UseResponseCompression();
+app.UseResponseCaching();
 app.UseAuthorization();
 
 app.MapControllers();
