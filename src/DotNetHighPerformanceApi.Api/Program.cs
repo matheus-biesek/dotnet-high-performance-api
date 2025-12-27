@@ -4,6 +4,10 @@ using FluentValidation;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using System.IO.Compression;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using System.Text.Json;
+using System.Linq;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,6 +62,17 @@ builder.Services.AddScoped<DotNetHighPerformanceApi.Application.Features.Product
 builder.Services.AddScoped<DotNetHighPerformanceApi.Application.Caching.ICacheService, DotNetHighPerformanceApi.Infrastructure.Caching.DistributedCacheService>();
 builder.Services.AddScoped<DotNetHighPerformanceApi.Application.Caching.IETagService, DotNetHighPerformanceApi.Infrastructure.Caching.ETagService>();
 
+// 9. Health Checks (Postgres + Redis)
+builder.Services.AddHealthChecks()
+    .AddNpgSql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        name: "postgres",
+        tags: new[] { "db" })
+    .AddRedis(
+        builder.Configuration.GetConnectionString("RedisConnection") ?? "localhost:6379",
+        name: "redis",
+        tags: new[] { "cache" });
+
 // 7. Controllers
 builder.Services.AddControllers();
 
@@ -108,6 +123,32 @@ app.UseResponseCaching();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Liveness probe - simple check that the app is running
+app.MapGet("/health/live", () => Results.Ok(new { status = "Live" }));
+
+// Readiness probe - checks postgres and redis
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => true,
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var result = JsonSerializer.Serialize(new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                error = e.Value.Exception?.Message,
+                duration = e.Value.Duration.ToString()
+            })
+        });
+        await context.Response.WriteAsync(result);
+    }
+});
 
 app.Run();
 
