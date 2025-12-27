@@ -3,7 +3,7 @@
 Este documento descreve os controllers presentes na aplicação, os dados que recebem e os dados que retornam, com exemplos JSON e rotas.
 
 **Controllers**
-- **OrdersController**: `/orders`
+- **OrdersController (v1)**: `/v{version}/orders` (ex.: `/v1/orders`)
 - **ProductsController (v1)**: `/v{version}/products` (ex.: `/v1/products`)
 - **SlowProductsController (v1)**: `/v{version}/slow/products` (ex.: `/v1/slow/products`) — controller demonstrativo com más práticas.
 
@@ -14,14 +14,14 @@ Este documento descreve os controllers presentes na aplicação, os dados que re
 
 ---
 
-**OrdersController**
-- Route base: `/orders`
+**OrdersController (v1)**
+- Route base: `/v{version}/orders` (ex.: `/v1/orders`)
 
 Endpoints:
 
 - Criar pedido
   - Método: POST
-  - URL: `/orders`
+  - URL: `/v1/orders`
   - Body (JSON):
 
 ```json
@@ -36,7 +36,7 @@ Endpoints:
 
 - Obter pedido por id
   - Método: GET
-  - URL: `/orders/{id}` (ex.: `/orders/123`)
+  - URL: `/v1/orders/{id}` (ex.: `/v1/orders/123`)
   - Respostas:
     - `200 OK` — body (OrderDto):
 
@@ -100,12 +100,11 @@ Endpoints (idem ao `ProductsController`):
 ---
 
 Observações finais
-- `ProductsController` e `SlowProductsController` estão versionados com API Versioning (`v1`).
-- `OrdersController` não está versionado no código atual (rota simples `/orders`). Se desejar versionamento consistente, posso atualizar para usar `/v{version}/orders`.
+- Todos os controllers estão versionados com API Versioning (`v1`).
 - Exemplo de chamada cURL para criar um pedido:
 
 ```bash
-curl -X POST http://localhost:5000/orders \
+curl -X POST http://localhost:5000/v1/orders \
   -H "Content-Type: application/json" \
   -d '{"productIds":[1,2]}'
 ```

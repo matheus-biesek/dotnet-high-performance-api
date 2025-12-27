@@ -3,11 +3,13 @@ using DotNetHighPerformanceApi.Features.Orders.v1.DTOs;
 using DotNetHighPerformanceApi.Features.Orders.v1.Queries.GetOrderById;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Asp.Versioning;
 
 namespace DotNetHighPerformanceApi.Features.Orders.v1;
 
 [ApiController]
-[Route("orders")]
+[ApiVersion("1.0")]
+[Route("v{version:apiVersion}/orders")]
 public class OrdersController(IMediator mediator) : ControllerBase
 {
     private readonly IMediator _mediator = mediator;
