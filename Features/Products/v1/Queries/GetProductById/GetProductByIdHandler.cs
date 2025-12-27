@@ -1,41 +1,15 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using DotNetHighPerformanceApi.Features.Products.v1.DTOs;
-using DotNetHighPerformanceApi.Persistence;
+using DotNetHighPerformanceApi.Features.Products.v1.Services;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using DotNetHighPerformanceApi.Caching;
-using System.Text.Json;
 
 namespace DotNetHighPerformanceApi.Features.Products.v1.Queries.GetProductById;
 
-public class GetProductByIdHandler(AppDbContext context, IMapper mapper, ICacheService cache) : IRequestHandler<GetProductByIdQuery, ProductDto?>
+public class GetProductByIdHandler(IProductService productService) : IRequestHandler<GetProductByIdQuery, (ProductDto? Data, string? ETag, bool IsNotModified)>
 {
-    private readonly AppDbContext _context = context;
-    private readonly IMapper _mapper = mapper;
-    private readonly ICacheService _cache = cache;
+    private readonly IProductService _productService = productService;
 
-    public async Task<ProductDto?> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
+    public async Task<(ProductDto? Data, string? ETag, bool IsNotModified)> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
     {
-        string cacheKey = $"product-{request.Id}";
-
-        var cached = await _cache.GetAsync<ProductDto>(cacheKey, cancellationToken);
-        if (cached != null)
-        {
-            return cached;
-        }
-
-        var product = await _context.Products
-            .AsNoTracking()
-            .Where(p => p.Id == request.Id)
-            .ProjectTo<ProductDto>(_mapper.ConfigurationProvider)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (product != null)
-        {
-            await _cache.SetAsync(cacheKey, product, TimeSpan.FromMinutes(5), cancellationToken);
-        }
-
-        return product;
+        return await _productService.GetByIdWithETagAsync(request.Id, request.IfNoneMatch, cancellationToken);
     }
 }

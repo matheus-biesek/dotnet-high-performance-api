@@ -4,5 +4,5 @@ namespace DotNetHighPerformanceApi.Features.Products.v1.Services;
 
 public interface IProductService
 {
-    Task<List<ProductDto>> GetByIdsAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default);
+    Task<(ProductDto? Data, string? ETag, bool IsNotModified)> GetByIdWithETagAsync(int id, string? ifNoneMatch = null, CancellationToken cancellationToken = default);
 }
