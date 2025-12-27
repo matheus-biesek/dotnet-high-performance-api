@@ -22,6 +22,8 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.HasIndex(e => e.UpdatedAt).HasDatabaseName("IX_Product_UpdatedAt");
         });
 
         // Configure Order
@@ -29,16 +31,22 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Total).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.HasIndex(e => e.UpdatedAt).HasDatabaseName("IX_Order_UpdatedAt");
             // Implicit Many-to-Many
             entity.HasMany(e => e.Products)
                   .WithMany(e => e.Orders);
         });
 
         // Seed Data
-        modelBuilder.Entity<Product>().HasData(
-            new Product { Id = 1, Name = "Notebook Gamer", Price = 5000.00m },
-            new Product { Id = 2, Name = "Mouse Sem Fio", Price = 150.00m },
-            new Product { Id = 3, Name = "Teclado Mecânico", Price = 350.00m }
-        );
+        var random = new Random();
+        var products = Enumerable.Range(1, 100).Select(i => new Product
+        {
+            Id = i,
+            Name = $"Produto {i}",
+            Price = Math.Round((decimal)(random.NextDouble() * 1000 + 50), 2) // preços entre 50 e 1050
+        }).ToArray();
+
+        modelBuilder.Entity<Product>().HasData(products);
     }
 }
