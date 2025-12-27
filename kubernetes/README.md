@@ -148,3 +148,13 @@ kind delete cluster --name dev
 ### Problemas de recursos
 - Verifique a disponibilidade: `kubectl top nodes`
 - Ajuste os limites em `resources.limits` nos arquivos YAML
+
+# COmando para gerar a imagem docker
+```
+docker build -f src/DotNetHighPerformanceApi.Api/Dockerfile -t dotnethighperfapi:latest .
+```
+
+# Comando para baixar a imagem do back end em docker para o Kind
+```
+kind load docker-image dotnethighperfapi:latest --name dev
+```
