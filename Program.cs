@@ -7,20 +7,19 @@ using System.IO.Compression;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. DbContext (PostgreSQL + Lazy Loading)
-// Note: Requires 'Start-Project' to have reference to Npgsql and Proxies
+// 1. DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
     options.UseLazyLoadingProxies();
 });
 
-// 2. Caching (Redis)
+// 2. Caching
 builder.Services.AddStackExchangeRedisCache(options =>
 {
     options.Configuration = builder.Configuration.GetConnectionString("RedisConnection") ?? "localhost:6379";
 });
-builder.Services.AddResponseCaching(); // For HTTP caching middleware if needed, but ResponseCache attribute works with headers
+builder.Services.AddResponseCaching();
 
 // 3. Response Compression (Gzip + Brotli)
 builder.Services.AddResponseCompression(options =>
@@ -54,11 +53,12 @@ builder.Services.AddScoped<DotNetHighPerformanceApi.Features.Products.v1.Reposit
 builder.Services.AddScoped<DotNetHighPerformanceApi.Features.Orders.v1.Services.IOrderService, DotNetHighPerformanceApi.Features.Orders.v1.Services.OrderService>();
 builder.Services.AddScoped<DotNetHighPerformanceApi.Features.Products.v1.Services.IProductService, DotNetHighPerformanceApi.Features.Products.v1.Services.ProductService>();
 builder.Services.AddScoped<DotNetHighPerformanceApi.Caching.ICacheService, DotNetHighPerformanceApi.Caching.DistributedCacheService>();
+builder.Services.AddScoped<DotNetHighPerformanceApi.Caching.IETagService, DotNetHighPerformanceApi.Caching.ETagService>();
 
 // 7. Controllers
 builder.Services.AddControllers();
 
-// Swagger (Optional but good for demo)
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -77,13 +77,12 @@ builder.Services.AddApiVersioning(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 
-    // Auto-migrate for demo purposes (Pragmatism)
+    // Auto-migrate for demo purposes.
     // In production, use CI/CD or bundles.
     using var scope = app.Services.CreateScope();
     try
@@ -93,7 +92,6 @@ if (app.Environment.IsDevelopment())
     }
     catch (Exception ex)
     {
-        // Log error
         Console.WriteLine($"Error creating DB: {ex.Message}");
     }
 }
