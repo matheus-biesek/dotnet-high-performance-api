@@ -7,12 +7,13 @@ using DotNetHighPerformanceApi.Caching;
 
 namespace DotNetHighPerformanceApi.Features.Orders.v1.Services;
 
-public class OrderService(IOrderRepository orderRepository, IProductRepository productRepository, IMapper mapper, ICacheService cache) : IOrderService
+public class OrderService(IOrderRepository orderRepository, IProductRepository productRepository, IMapper mapper, ICacheService cache, IETagService eTagService) : IOrderService
 {
     private readonly IOrderRepository _orderRepository = orderRepository;
     private readonly IProductRepository _productRepository = productRepository;
     private readonly IMapper _mapper = mapper;
     private readonly ICacheService _cache = cache;
+    private readonly IETagService _eTagService = eTagService;
 
     public async Task<int> CreateOrderAsync(CreateOrderDto dto, CancellationToken cancellationToken = default)
     {
@@ -38,22 +39,31 @@ public class OrderService(IOrderRepository orderRepository, IProductRepository p
         return order.Id;
     }
 
-    public async Task<OrderDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<(OrderDto? Data, string? ETag, bool IsNotModified)> GetByIdWithETagAsync(int id, string? ifNoneMatch = null, CancellationToken cancellationToken = default)
     {
         string cacheKey = $"order-{id}";
-        var cached = await _cache.GetAsync<OrderDto>(cacheKey, cancellationToken);
-        if (cached != null)
+        var cached = await _cache.GetAsync<(OrderDto, int)>(cacheKey, cancellationToken);
+        if (cached.Item1 != null)
         {
-            return cached;
+            var eTag = _eTagService.GenerateETag("order", id, cached.Item2);
+            if (ifNoneMatch?.Equals(eTag) == true)
+                return (null, eTag, true);
+            return (cached.Item1, eTag, false);
         }
 
         var order = await _orderRepository.GetByIdAsync(id, cancellationToken);
-        if (order == null) return null;
+        if (order == null)
+            return (null, null, false);
 
         var dto = _mapper.Map<OrderDto>(order);
+        var eTagValue = _eTagService.GenerateETag("order", id, order.Version);
 
-        await _cache.SetAsync(cacheKey, dto, TimeSpan.FromMinutes(10), cancellationToken);
+        // Cache with Version for ETag generation
+        await _cache.SetAsync(cacheKey, (dto, order.Version), TimeSpan.FromMinutes(10), cancellationToken);
 
-        return dto;
+        if (ifNoneMatch?.Equals(eTagValue) == true)
+            return (null, eTagValue, true);
+
+        return (dto, eTagValue, false);
     }
 }
