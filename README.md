@@ -254,10 +254,3 @@ Exemplo para obter produtos (versão v1):
 ```bash
 curl http://localhost:5000/v1/products
 ```
-
-Se quiser, eu posso:
-- Implementar ETag/If-None-Match para `GetAllProductsQuery`,
-- Adicionar suporte a `Last-Modified` header em conjunto com ETag,
-- Adicionar uma seção com contratos OpenAPI/Swagger (se desejar exportar exemplos automáticos),
-- Implementar PATCH para atualizações parciais com If-Match.
-
