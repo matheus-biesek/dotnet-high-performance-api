@@ -1,0 +1,42 @@
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Build artifacts
+/bin/
+/obj/
+**/bin/
+**/obj/
+
+## Rider
+.idea/
+
+## VS Code
+.vscode/
+
+## NuGet
+/packages/
+*.nupkg
+
+## Dotnet
+project.lock.json
+artifacts/
+
+## Logs
+*.log
+logs/
+
+## Database files
+*.db
+*.sqlite
+
+## User secrets
+secrets.json
+appsettings.*.Local.json
+
+## OS generated
+.DS_Store
+Thumbs.db
