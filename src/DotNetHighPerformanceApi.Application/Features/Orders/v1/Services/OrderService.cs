@@ -4,8 +4,6 @@ using DotNetHighPerformanceApi.Domain.Entities;
 using DotNetHighPerformanceApi.Application.Features.Orders.v1.DTOs;
 using DotNetHighPerformanceApi.Domain.Repositories;
 using DotNetHighPerformanceApi.Application.Common.Interfaces;
-using DotNetHighPerformanceApi.Domain.Repositories;
-using DotNetHighPerformanceApi.Application.Common.Interfaces;
 
 namespace DotNetHighPerformanceApi.Application.Features.Orders.v1.Services;
 
