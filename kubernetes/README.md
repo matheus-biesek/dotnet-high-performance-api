@@ -1,160 +1,264 @@
-# Kubernetes - Configuração Inicial
+# Kubernetes - Configuração Inicial (Kind)
 
-Este diretório contém as configurações necessárias para executar a aplicação em um cluster Kubernetes usando [Kind](https://kind.sigs.k8s.io/).
+Este guia explica como configurar um cluster Kubernetes local usando Kind, com a aplicação .NET, PostgreSQL e Redis.
 
 ## Pré-requisitos
 
 - Docker instalado
 - Kind instalado (`kind`)
 - kubectl instalado
-- Acesso a permissões de administrador para criar clusters
 
-## Passos de Configuração
+---
 
-### 1. Criar o Cluster Kind
+## 1. Configuração do Cluster Kubernetes
 
-Execute o comando abaixo para criar um cluster Kubernetes local com a configuração definida:
+### 1.1 Visão geral da topologia
+
+O cluster será criado a partir do arquivo `kubernetes/kind-config.yaml` com:
+
+- **1 control-plane** (gerenciador do cluster)
+- **2 workers** (executam os pods)
+
+Nomes dos nodes esperados após criação:
+- `dev-control-plane`
+- `dev-worker` (node de banco de dados)
+- `dev-worker2` (node de aplicação)
+
+### 1.2 Configuração de Nodes e Pods
+
+**Mapeamento de serviços/pods para nodes:**
+
+| Serviço | Deployment | Réplicas | Node | Label |
+|---------|-----------|----------|------|-------|
+| PostgreSQL | postgres | 1 | `dev-worker` | `role=db` |
+| Redis | redis | 1 | `dev-worker` | `role=db` |
+| Backend (.NET) | backend | 2 | `dev-worker2` | `role=app` |
+
+Cada serviço será agendado (scheduled) no node correto usando `nodeSelector` e labels.
+
+---
+
+## 2. Passo a Passo
+
+### 2.1 Criar o Cluster Kind
+
+Execute o comando para criar o cluster com os nodes:
 
 ```bash
 kind create cluster --name dev --config kubernetes/kind-config.yaml
 ```
 
-Este comando irá:
-- Criar um cluster Kind chamado `dev`
-- Configurar os nodes conforme especificado em `kind-config.yaml`
-- Preparar o ambiente para deployment
+Verifique os nodes criados:
 
-### 2. Rotular os Nodes
+```bash
+kubectl get nodes -o wide
+```
 
-Após a criação do cluster, é necessário rotular os nodes para direcionar os deployments corretos:
+### 2.2 Rotular os Nodes
 
-#### Marcar o node de Banco de Dados
+Após criar o cluster, rotule os workers para dirigir os pods ao node correto:
+
+**Rotular node de banco de dados:**
 
 ```bash
 kubectl label node dev-worker role=db
 ```
 
-Este node será responsável pelo PostgreSQL e outras dependências de armazenamento.
-
-#### Marcar o node de Aplicação
+**Rotular node de aplicação:**
 
 ```bash
 kubectl label node dev-worker2 role=app
 ```
 
-Este node executará os serviços da aplicação .NET.
-
-### 3. Aplicar os Manifests Kubernetes
-
-Aplique todos os arquivos YAML de configuração:
+Verifique os labels:
 
 ```bash
-kubectl apply -f kubernetes/infra/
-kubectl apply -f kubernetes/backend/
+kubectl get nodes --show-labels
 ```
 
-Estes comandos irão:
-- Criar os deployments de infraestrutura (PostgreSQL, Redis)
-- Configurar os serviços necessários
-- Iniciar os containers da aplicação
+---
 
-## Estrutura de Diretórios
+## 3. Construir a Imagem Docker
+
+### 3.1 Build da Imagem
+
+A partir da raiz do repositório, execute:
+
+```bash
+docker build -f src/DotNetHighPerformanceApi.Api/Dockerfile -t dotnethighperfapi:latest .
+```
+
+Verifique que a imagem foi criada:
+
+```bash
+docker images | grep dotnethighperfapi
+```
+
+---
+
+## 4. Carregar a Imagem para o Cluster Kind
+
+Como estamos usando Kind localmente, precisamos disponibilizar a imagem ao cluster:
+
+```bash
+kind load docker-image dotnethighperfapi:latest --name dev
+```
+
+Isso copia a imagem Docker do host para dentro do cluster Kind, tornando-a disponível para os pods.
+
+> **Nota:** Se você usar um registry remoto, pule este passo e use `docker push` + atualize o YAML do deployment com a URL da imagem.
+
+---
+
+## 5. Aplicar Deployments e Services
+
+### 5.1 Estrutura de Arquivos
 
 ```
 kubernetes/
-├── kind-config.yaml          # Configuração do cluster Kind
-├── infra/                    # Serviços de infraestrutura
+├── kind-config.yaml              # Configuração do cluster
+├── infra/                        # Serviços de infraestrutura
 │   ├── postgres-deployment.yaml
 │   ├── postgres-service.yaml
 │   ├── redis-deployment.yaml
 │   └── redis-service.yaml
-└── backend/                  # Configuração da aplicação
+└── backend/                      # Aplicação
+    ├── asp-deployment.yaml
+    └── asp-service.yaml
 ```
 
-## Detalhes do Redis
+### 5.2 Aplicar os Manifests
 
-O Redis é um cache em memória de alta performance utilizado pela aplicação para melhorar a velocidade de acesso a dados.
+Execute os comandos para criar todos os serviços:
 
-### Configuração
-
-- **Imagem**: `redis:latest`
-- **Porta**: `6379` (padrão do Redis)
-- **Recursos Solicitados**:
-  - CPU: 100m
-  - Memória: 128Mi
-- **Limites de Recursos**:
-  - CPU: 250m
-  - Memória: 256Mi
-
-### Funcionalidades Principais
-
-- **In-Memory Data Store**: Armazenamento ultra-rápido de dados em memória
-- **Cache Distribuído**: Reduz carga do banco de dados principal
-- **Data Structures**: Suporta strings, lists, sets, sorted sets, hashes
-- **Persistência Opcional**: Pode ser configurado com RDB ou AOF
-
-### Performance
-
-- Latência < 1ms para operações
-- Throughput de até 100k+ operações por segundo
-- Ideal para sessões, cache de consultas e dados temporários
-
-### Acessar o Redis
-
-Para conectar-se ao Redis dentro do cluster:
+**Infraestrutura (PostgreSQL + Redis):**
 
 ```bash
-kubectl exec -it <redis-pod-name> -- redis-cli
+kubectl apply -f kubernetes/infra/
 ```
 
-Para portar o Redis localmente (se necessário):
+**Backend (Aplicação .NET):**
 
 ```bash
-kubectl port-forward svc/redis 6379:6379
+kubectl apply -f kubernetes/backend/
 ```
 
-## Verificar o Status dos Pods
+Ou aplique tudo de uma vez:
 
-Para verificar se todos os serviços estão rodando corretamente:
+```bash
+kubectl apply -f kubernetes/
+```
+
+---
+
+## 6. Verificar Status
+
+### 6.1 Listar Pods e Nodes
+
+Ver todos os pods com o node onde estão rodando:
 
 ```bash
 kubectl get pods -o wide
 ```
 
-Para ver logs de um serviço específico:
+Ver os nodes com seus labels:
 
 ```bash
-kubectl logs -f deployment/<nome-do-deployment>
+kubectl get nodes --show-labels
 ```
 
-## Limpeza
+### 6.2 Verificar Deployments
 
-Para remover o cluster Kind:
+Ver detalhes dos deployments (réplicas desejadas/atuais):
+
+```bash
+kubectl get deploy -o wide
+kubectl describe deploy backend
+```
+
+### 6.3 Ver Logs
+
+Logs de um deployment específico:
+
+```bash
+kubectl logs -f deployment/backend
+```
+
+Logs de um pod específico:
+
+```bash
+kubectl logs <pod-name>
+```
+
+---
+
+## 7. Acessar Serviços
+
+### 7.1 PostgreSQL
+
+Conectar ao PostgreSQL:
+
+```bash
+kubectl exec -it $(kubectl get pods -l app=postgres -o jsonpath='{.items[0].metadata.name}') -- psql -U postgres -d HighPerformanceApiDb
+```
+
+### 7.2 Redis
+
+Acessar Redis CLI:
+
+```bash
+kubectl exec -it $(kubectl get pods -l app=redis -o jsonpath='{.items[0].metadata.name}') -- redis-cli
+```
+
+### 7.3 API Backend
+
+Testar a API via port-forward:
+
+```bash
+# Redirecionar porta local 5000 para o serviço backend
+kubectl port-forward svc/backend 5000:5000
+```
+
+Em outro terminal:
+
+```bash
+# Testar health check
+curl http://localhost:5000/health/live
+curl http://localhost:5000/health/ready
+```
+
+---
+
+## 8. Limpeza
+
+Remover o cluster Kind:
 
 ```bash
 kind delete cluster --name dev
 ```
 
-## Troubleshooting
+---
 
-### Pod não inicia
-- Verifique os logs: `kubectl logs <pod-name>`
-- Confirme se os labels dos nodes estão corretos: `kubectl get nodes --show-labels`
+## 9. Troubleshooting
 
-### Serviço não é acessível
-- Verifique o serviço: `kubectl get svc`
-- Teste a conectividade entre pods: `kubectl exec -it <pod> -- sh`
+| Problema | Solução |
+|----------|---------|
+| Pod não inicia | `kubectl logs <pod-name>` ou `kubectl describe pod <pod-name>` |
+| Image not found | Execute `kind load docker-image <image>:<tag> --name dev` |
+| Serviço não é acessível | Verifique labels: `kubectl get nodes --show-labels` e `kubectl get pods --show-labels` |
+| Recurso insuficiente | `kubectl top nodes` para ver uso de CPU/memória |
+| Pod agendado no node errado | Verifique `nodeSelector` no YAML e labels do node |
 
-### Problemas de recursos
-- Verifique a disponibilidade: `kubectl top nodes`
-- Ajuste os limites em `resources.limits` nos arquivos YAML
+---
 
-# COmando para gerar a imagem docker
-```
-docker build -f src/DotNetHighPerformanceApi.Api/Dockerfile -t dotnethighperfapi:latest .
-```
+## Referências Rápidas
 
-# Comando para baixar a imagem do back end em docker para o Kind
-```
-kind load docker-image dotnethighperfapi:latest --name dev
-```
+| Comando | Descrição |
+|---------|-----------|
+| `kubectl get nodes` | Lista nodes do cluster |
+| `kubectl get pods -A` | Lista todos os pods em todos os namespaces |
+| `kubectl get svc` | Lista serviços |
+| `kubectl describe pod <name>` | Detalhes completos de um pod |
+| `kubectl delete pod <name>` | Remove um pod (será recriado) |
+| `kubectl apply -f <file>` | Aplica um manifest YAML |
+| `kubectl delete -f <file>` | Remove recursos de um manifest |
