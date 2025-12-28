@@ -94,7 +94,8 @@ builder.Services.AddApiVersioning(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+// Fase de teste!!! trocar para app.Environment.IsDevelopment() quando for em produção.
+if (true)
 {
     app.UseSwagger();
     app.UseSwaggerUI();
