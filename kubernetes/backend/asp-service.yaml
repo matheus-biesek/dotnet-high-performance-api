@@ -6,7 +6,6 @@ spec:
   selector:
     app: backend
   ports:
-    - port: 80        # porta interna do service
-      targetPort: 5000 # porta do container
-      nodePort: 30080  # porta do host
+    - port: 80
+      targetPort: 5000
   type: NodePort
