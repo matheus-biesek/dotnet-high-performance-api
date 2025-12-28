@@ -38,9 +38,9 @@ Cada serviço será agendado (scheduled) no node correto usando `nodeSelector` e
 
 ---
 
-## 2. Passo a Passo
+## 2 Passo a Passo
 
-### 2.1 Criar o Cluster Kind
+### 2 Criar o Cluster Kind
 
 Execute o comando para criar o cluster com os nodes:
 
@@ -52,28 +52,6 @@ Verifique os nodes criados:
 
 ```bash
 kubectl get nodes -o wide
-```
-
-### 2.2 Rotular os Nodes
-
-Após criar o cluster, rotule os workers para dirigir os pods ao node correto:
-
-**Rotular node de banco de dados:**
-
-```bash
-kubectl label node dev-worker role=db
-```
-
-**Rotular node de aplicação:**
-
-```bash
-kubectl label node dev-worker2 role=app
-```
-
-Verifique os labels:
-
-```bash
-kubectl get nodes --show-labels
 ```
 
 ---
@@ -216,7 +194,7 @@ Testar a API via port-forward:
 
 ```bash
 # Redirecionar porta local 5000 para o serviço backend
-kubectl port-forward svc/backend 5000:5000
+kubectl port-forward svc/backend 5000:80
 ```
 
 Em outro terminal:
@@ -229,7 +207,12 @@ curl http://localhost:5000/health/ready
 
 ---
 
-## 8. Limpeza
+## 8.1 Reiniciando os pods do Deployment
+```
+kubectl rollout restart deployment/backend
+```
+
+## 8.2 Limpeza
 
 Remover o cluster Kind:
 

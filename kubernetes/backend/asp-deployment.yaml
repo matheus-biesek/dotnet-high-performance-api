@@ -19,6 +19,8 @@ spec:
           ports:
             - containerPort: 5000
           env:
+            - name: DOTNET_ENVIRONMENT
+              value: Production
             - name: POSTGRES_HOST
               value: postgres
             - name: REDIS_HOST
