@@ -114,7 +114,11 @@ if (true)
     }
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseResponseCompression();
 app.UseResponseCaching();
 app.UseAuthorization();
