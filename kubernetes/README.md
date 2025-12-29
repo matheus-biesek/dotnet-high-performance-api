@@ -38,9 +38,9 @@ Cada serviço será agendado (scheduled) no node correto usando `nodeSelector` e
 
 ---
 
-## 2 Passo a Passo
+## 2. Passo a Passo
 
-### 2 Criar o Cluster Kind
+### 2.1 Criar o Cluster Kind
 
 Execute o comando para criar o cluster com os nodes:
 
@@ -52,6 +52,35 @@ Verifique os nodes criados:
 
 ```bash
 kubectl get nodes -o wide
+```
+
+---
+
+## 2.2 Adicione labels para o igress
+
+```
+kubectl label node dev-control-plane ingress-ready=true
+kubectl label node dev-worker ingress-ready=true
+kubectl label node dev-worker2 ingress-ready=true
+kubectl label node dev-worker3 ingress-ready=true
+```
+
+## 2.3 Instale o Ingess-nginx no Cluster
+
+```
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.0/deploy/static/provider/kind/deploy.yaml
+``` 
+
+## 2.4 Ajusta sua maquina linux para responder um host corretamente
+
+```
+sudo nano /etc/hosts
+```
+
+### 2.4 Adicione
+
+```
+127.0.0.1 backend.local
 ```
 
 ---
@@ -119,12 +148,6 @@ kubectl apply -f kubernetes/infra/
 
 ```bash
 kubectl apply -f kubernetes/backend/
-```
-
-Ou aplique tudo de uma vez:
-
-```bash
-kubectl apply -f kubernetes/
 ```
 
 ---
@@ -245,3 +268,33 @@ kind delete cluster --name dev
 | `kubectl delete pod <name>` | Remove um pod (será recriado) |
 | `kubectl apply -f <file>` | Aplica um manifest YAML |
 | `kubectl delete -f <file>` | Remove recursos de um manifest |
+
+
+---
+
+## Adicione labels para o igress
+
+kubectl label node dev-control-plane ingress-ready=true
+kubectl label node dev-worker ingress-ready=true
+kubectl label node dev-worker2 ingress-ready=true
+kubectl label node dev-worker3 ingress-ready=true
+
+
+## Instale o Ingess-nginx no Cluster
+
+```
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.0/deploy/static/provider/kind/deploy.yaml
+
+``` 
+
+## Ajusta sua maquina linux para responder um host corretamente
+
+```
+sudo nano /etc/hosts
+```
+
+### adicione
+
+```
+127.0.0.1 backend.local
+```
