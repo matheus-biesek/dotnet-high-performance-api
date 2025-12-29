@@ -14,7 +14,7 @@ Este guia explica como configurar um cluster Kubernetes local usando Kind, com a
 
 ### 1.1 Visão geral da topologia
 
-O cluster será criado a partir do arquivo `kubernetes/kind-config.yaml` com:
+O cluster será criado a partir do arquivo `kubernetes/config/kind-config.yaml` com:
 
 - **1 control-plane** (gerenciador do cluster)
 - **2 workers** (executam os pods)
@@ -60,9 +60,6 @@ kubectl get nodes -o wide
 
 ```
 kubectl label node dev-control-plane ingress-ready=true
-kubectl label node dev-worker ingress-ready=true
-kubectl label node dev-worker2 ingress-ready=true
-kubectl label node dev-worker3 ingress-ready=true
 ```
 
 ## 2.3 Instale o Ingess-nginx no Cluster
@@ -213,19 +210,11 @@ kubectl exec -it $(kubectl get pods -l app=redis -o jsonpath='{.items[0].metadat
 
 ### 7.3 API Backend
 
-Testar a API via port-forward:
+Testar a API:
 
 ```bash
-# Redirecionar porta local 5000 para o serviço backend
-kubectl port-forward svc/backend 5000:80
-```
-
-Em outro terminal:
-
-```bash
-# Testar health check
-curl http://localhost:5000/health/live
-curl http://localhost:5000/health/ready
+curl http://backend.local/health/live
+curl http://backend.local/health/ready
 ```
 
 ---

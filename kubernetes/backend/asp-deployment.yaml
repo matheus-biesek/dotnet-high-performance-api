@@ -19,6 +19,8 @@ spec:
           ports:
             - containerPort: 5000
           env:
+            - name: ASPNETCORE_URLS
+              value: http://0.0.0.0:5000
             - name: DOTNET_ENVIRONMENT
               value: Production
             - name: POSTGRES_HOST
