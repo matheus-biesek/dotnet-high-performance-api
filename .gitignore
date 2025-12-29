@@ -40,3 +40,5 @@ appsettings.*.Local.json
 ## OS generated
 .DS_Store
 Thumbs.db
+
+tls/

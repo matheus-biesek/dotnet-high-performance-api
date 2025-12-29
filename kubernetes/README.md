@@ -45,7 +45,7 @@ Cada serviço será agendado (scheduled) no node correto usando `nodeSelector` e
 Execute o comando para criar o cluster com os nodes:
 
 ```bash
-kind create cluster --name dev --config kubernetes/kind-config.yaml
+kind create cluster --name dev --config kubernetes/config/kind-config.yaml
 ```
 
 Verifique os nodes criados:
@@ -81,6 +81,25 @@ sudo nano /etc/hosts
 
 ```
 127.0.0.1 backend.local
+```
+
+### 2.5 Crie certificado TLS para HTTPS
+```
+mkdir -p tls
+
+openssl req -x509 -nodes -days 365 \
+  -newkey rsa:2048 \
+  -keyout tls/tls.key \
+  -out tls/tls.crt \
+  -subj "/CN=backend.local"
+``` 
+
+### 2.6 Criar Secret no cluster
+
+```  
+kubectl create secret tls backend-tls \
+  --cert=tls/tls.crt \
+  --key=tls/tls.key
 ```
 
 ---
@@ -216,16 +235,16 @@ kubectl exec -it $(kubectl get pods -l app=redis -o jsonpath='{.items[0].metadat
 Testar a API via port-forward:
 
 ```bash
-# Redirecionar porta local 5000 para o serviço backend
-kubectl port-forward svc/backend 5000:80
+kubectl port-forward svc/ingress-nginx-controller -n ingress-nginx 8443:443
 ```
 
 Em outro terminal:
 
 ```bash
 # Testar health check
-curl http://localhost:5000/health/live
-curl http://localhost:5000/health/ready
+curl -k https://backend.local:8443/health/live
+curl -k https://backend.local:8443/health/ready
+
 ```
 
 ---
@@ -271,30 +290,3 @@ kind delete cluster --name dev
 
 
 ---
-
-## Adicione labels para o igress
-
-kubectl label node dev-control-plane ingress-ready=true
-kubectl label node dev-worker ingress-ready=true
-kubectl label node dev-worker2 ingress-ready=true
-kubectl label node dev-worker3 ingress-ready=true
-
-
-## Instale o Ingess-nginx no Cluster
-
-```
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.0/deploy/static/provider/kind/deploy.yaml
-
-``` 
-
-## Ajusta sua maquina linux para responder um host corretamente
-
-```
-sudo nano /etc/hosts
-```
-
-### adicione
-
-```
-127.0.0.1 backend.local
-```
