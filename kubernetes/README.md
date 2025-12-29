@@ -45,7 +45,7 @@ Cada serviço será agendado (scheduled) no node correto usando `nodeSelector` e
 Execute o comando para criar o cluster com os nodes:
 
 ```bash
-kind create cluster --name dev --config kubernetes/kind-config.yaml
+kind create cluster --name dev --config kubernetes/config/kind-config.yaml
 ```
 
 Verifique os nodes criados:
